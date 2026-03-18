@@ -24,6 +24,7 @@ Tambem existe um modo administrativo com protecao por PIN para gerenciar servico
 - Filtrar agendamentos por data
 - Exportar agendamentos para PDF
 - Persistir dados localmente com localStorage
+- Sincronizacao online de agendamentos entre dispositivos (opcional com Supabase)
 
 ## Tecnologias
 
@@ -32,6 +33,7 @@ Tambem existe um modo administrativo com protecao por PIN para gerenciar servico
 - JavaScript
 - CSS
 - localStorage
+- Supabase (opcional)
 - Vercel
 
 ## Como Executar Localmente
@@ -52,6 +54,59 @@ http://localhost:5173
 ```bash
 npm run build
 ```
+
+## Ativar Sincronizacao Online (Supabase)
+
+1. Crie um projeto no Supabase.
+2. No projeto, abra SQL Editor e rode este script:
+
+```sql
+create table if not exists public.appointments (
+	id uuid primary key,
+	client_name text not null,
+	phone text not null,
+	date date not null,
+	time text not null,
+	notes text,
+	services jsonb not null default '[]'::jsonb,
+	total_price numeric(10,2) not null default 0,
+	total_duration integer not null default 0,
+	created_at timestamptz not null default now()
+);
+
+alter table public.appointments enable row level security;
+
+create policy "Allow anon read"
+on public.appointments
+for select
+to anon
+using (true);
+
+create policy "Allow anon insert"
+on public.appointments
+for insert
+to anon
+with check (true);
+
+create policy "Allow anon delete"
+on public.appointments
+for delete
+to anon
+using (true);
+```
+
+3. Copie as credenciais do projeto em Project Settings > API.
+4. Crie um arquivo .env local baseado em .env.example.
+5. Preencha:
+
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
+
+6. Reinicie o projeto com npm run dev.
+
+Quando configurado, os agendamentos passam a aparecer em todos os dispositivos.
 
 ## Estrutura do Projeto
 
@@ -75,8 +130,9 @@ public/
 ## Observacoes
 
 - Esta versao foi pensada para testes e portfolio.
-- Os dados ficam salvos no navegador, pois ainda nao ha backend ou banco de dados centralizado.
-- Para uma versao de producao completa, o proximo passo seria adicionar autenticacao, API e persistencia em banco.
+- Sem Supabase configurado, os dados ficam salvos apenas no navegador do dispositivo.
+- Com Supabase configurado, os agendamentos ficam sincronizados online.
+- Para uma versao de producao completa, o proximo passo seria adicionar autenticacao com perfis e regras de acesso mais restritas.
 
 ## Autor
 

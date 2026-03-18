@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import { isSupabaseConfigured, supabase } from './supabaseClient'
 
 const initialServices = [
   { id: 'corte-feminino', name: 'Corte Feminino', price: 80, duration: 60 },
@@ -78,6 +79,20 @@ function loadStorage(key, fallbackValue) {
   }
 }
 
+function mapDatabaseAppointment(row) {
+  return {
+    id: row.id,
+    clientName: row.client_name,
+    phone: row.phone,
+    date: row.date,
+    time: row.time,
+    notes: row.notes || '',
+    services: Array.isArray(row.services) ? row.services : [],
+    totalPrice: Number(row.total_price) || 0,
+    totalDuration: Number(row.total_duration) || 0
+  }
+}
+
 function App() {
   const [viewMode, setViewMode] = useState('cliente')
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => sessionStorage.getItem(ADMIN_SESSION_KEY) === 'true')
@@ -95,6 +110,8 @@ function App() {
   const [appointments, setAppointments] = useState(() => loadStorage(APPOINTMENTS_STORAGE_KEY, []))
   const [feedback, setFeedback] = useState('')
   const [adminFeedback, setAdminFeedback] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSyncLoading, setIsSyncLoading] = useState(isSupabaseConfigured)
   const [appointmentFilterDate, setAppointmentFilterDate] = useState('')
   const [newService, setNewService] = useState({
     name: '',
@@ -134,6 +151,38 @@ function App() {
   useEffect(() => {
     localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify(appointments))
   }, [appointments])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      return
+    }
+
+    let isMounted = true
+
+    const loadRemoteAppointments = async () => {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (!isMounted) return
+
+      if (error) {
+        setFeedback('Falha na sincronizacao online. Usando dados locais neste dispositivo.')
+        setIsSyncLoading(false)
+        return
+      }
+
+      setAppointments((data || []).map(mapDatabaseAppointment))
+      setIsSyncLoading(false)
+    }
+
+    loadRemoteAppointments()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useEffect(() => {
     sessionStorage.setItem(ADMIN_SESSION_KEY, String(isAdminUnlocked))
@@ -248,12 +297,24 @@ function App() {
     setViewMode('cliente')
   }
 
-  const handleClearAllData = () => {
+  const handleClearAllData = async () => {
     const confirmMessage =
       'Tem certeza que deseja limpar TODOS os servicos e TODOS os agendamentos? Essa acao nao pode ser desfeita.'
 
     if (!window.confirm(confirmMessage)) {
       return
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .not('id', 'is', null)
+
+      if (error) {
+        setAdminFeedback('Falha ao limpar agendamentos online. Tente novamente.')
+        return
+      }
     }
 
     setServices(initialServices)
@@ -264,6 +325,7 @@ function App() {
   }
 
   const handleExportToWhatsApp = () => {
+    setFeedback('Conclua seu agendamento enviando a mensagem no WhatsApp.')
     const message = buildAppointmentsMessage(filteredAppointments)
     const whatsappUrl = `https://wa.me/${SALON_WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
@@ -303,7 +365,7 @@ function App() {
     printWindow.print()
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
     if (!formData.clientName || !formData.phone || !formData.date || !formData.time) {
@@ -315,6 +377,8 @@ function App() {
       setFeedback('Selecione ao menos um servico para agendar.')
       return
     }
+
+    setIsSubmitting(true)
 
     const appointment = {
       id: crypto.randomUUID(),
@@ -328,8 +392,37 @@ function App() {
       totalDuration
     }
 
-    setAppointments((current) => [appointment, ...current])
-    setFeedback('Agendamento criado com sucesso!')
+    if (isSupabaseConfigured && supabase) {
+      const payload = {
+        id: appointment.id,
+        client_name: appointment.clientName,
+        phone: appointment.phone,
+        date: appointment.date,
+        time: appointment.time,
+        notes: appointment.notes,
+        services: appointment.services,
+        total_price: appointment.totalPrice,
+        total_duration: appointment.totalDuration
+      }
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert(payload)
+        .select('*')
+        .single()
+
+      if (error) {
+        setAppointments((current) => [appointment, ...current])
+        setFeedback('Falha ao sincronizar online. Agendamento salvo apenas neste dispositivo.')
+      } else if (data) {
+        setAppointments((current) => [mapDatabaseAppointment(data), ...current])
+        setFeedback('Agendamento criado e sincronizado com sucesso!')
+      }
+    } else {
+      setAppointments((current) => [appointment, ...current])
+      setFeedback('Agendamento criado com sucesso!')
+    }
+
     setFormData({
       clientName: '',
       phone: '',
@@ -338,6 +431,7 @@ function App() {
       notes: ''
     })
     setSelectedServices([])
+    setIsSubmitting(false)
   }
 
   return (
@@ -347,6 +441,11 @@ function App() {
         <h1>Studio Lucia Soares</h1>
         <p>
           Escolha os servicos, veja os valores e agende seu horario em poucos minutos.
+        </p>
+        <p className="hint">
+          {isSupabaseConfigured
+            ? 'Sincronizacao online ativa: agendamentos aparecem em todos os dispositivos.'
+            : 'Sincronizacao online desativada: os dados ficam apenas neste dispositivo.'}
         </p>
 
         <div className="mode-switch" role="tablist" aria-label="Troca de modo">
@@ -462,8 +561,8 @@ function App() {
                 <p>Tempo estimado: <strong>{totalDuration || 0} min</strong></p>
               </div>
 
-              <button className="primary-button" type="submit">
-                Confirmar agendamento
+              <button className="primary-button" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Salvando...' : 'Confirmar agendamento'}
               </button>
 
               {feedback ? <p className="feedback">{feedback}</p> : null}
@@ -491,10 +590,14 @@ function App() {
                   Exportar PDF
                 </button>
                 <button type="button" className="secondary-button" onClick={handleExportToWhatsApp}>
-                  Enviar WhatsApp
+                  Concluir
                 </button>
               </div>
             </div>
+
+            <p className="hint">Conclua seu agendamento enviando a mensagem no WhatsApp.</p>
+
+            {isSyncLoading ? <p className="hint">Carregando agendamentos sincronizados...</p> : null}
 
             {filteredAppointments.length === 0 ? (
               <p className="empty-state">Nenhum agendamento ainda.</p>
