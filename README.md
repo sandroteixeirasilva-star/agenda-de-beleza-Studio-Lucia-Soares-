@@ -1,16 +1,83 @@
-# React + Vite
+# Agenda de Beleza - Studio Lucia Soares
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicacao web para agendamento de servicos de beleza, criada para portfolio e fase de testes com clientes reais.
 
-Currently, two official plugins are available:
+## Demo
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Producao: https://agenda-de-beleza-studio-lucia-soare.vercel.app/
+- Repositorio: https://github.com/sandroteixeirasilva-star/agenda-de-beleza-Studio-Lucia-Soares-
 
-## React Compiler
+## Visao Geral
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+O projeto simula uma agenda virtual para um estudio de beleza, permitindo que clientes selecionem servicos, preencham seus dados e iniciem o envio do agendamento para o WhatsApp do salao.
 
-## Expanding the ESLint configuration
+Tambem existe um modo administrativo com protecao por PIN para gerenciar servicos, acompanhar os agendamentos salvos localmente e exportar os dados.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Funcionalidades
+
+- Selecionar multiplos servicos com calculo automatico de valor total e tempo estimado
+- Preencher nome, telefone, data, horario e observacoes do agendamento
+- Abrir o WhatsApp com a mensagem do agendamento pronta para envio ao salao
+- Alternar entre modo cliente e modo admin
+- Proteger o modo admin com PIN
+- Criar, editar e remover servicos
+- Filtrar agendamentos por data
+- Exportar agendamentos para PDF
+- Persistir dados localmente com localStorage
+
+## Tecnologias
+
+- React 19
+- Vite 8
+- JavaScript
+- CSS
+- localStorage
+- Vercel
+
+## Como Executar Localmente
+
+```bash
+npm install
+npm run dev
+```
+
+Aplicacao local disponivel em um endereco parecido com:
+
+```text
+http://localhost:5173
+```
+
+## Build de Producao
+
+```bash
+npm run build
+```
+
+## Estrutura do Projeto
+
+```text
+src/
+	App.jsx
+	App.css
+	index.css
+	main.jsx
+public/
+```
+
+## Fluxo Atual do Projeto
+
+1. A cliente acessa o link do sistema.
+2. Escolhe os servicos desejados.
+3. Preenche os dados do agendamento.
+4. O sistema monta a mensagem para o WhatsApp do salao.
+5. A cliente confirma o envio diretamente no WhatsApp.
+
+## Observacoes
+
+- Esta versao foi pensada para testes e portfolio.
+- Os dados ficam salvos no navegador, pois ainda nao ha backend ou banco de dados centralizado.
+- Para uma versao de producao completa, o proximo passo seria adicionar autenticacao, API e persistencia em banco.
+
+## Autor
+
+- Sandro Teixeira Silva
