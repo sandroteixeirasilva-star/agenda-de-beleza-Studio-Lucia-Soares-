@@ -275,6 +275,41 @@
   color: #4e2237;
 }
 
+.status-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.status-pendente {
+  background: #fff4dd;
+  color: #7b5300;
+}
+
+.status-confirmado {
+  background: #dff7e7;
+  color: #1f6b3a;
+}
+
+.status-cancelado {
+  background: #ffe7e8;
+  color: #8f243c;
+}
+
+.status-select {
+  margin-top: 8px;
+  border: 1px solid #eac9cb;
+  border-radius: 10px;
+  padding: 6px 8px;
+  font: inherit;
+  background: #fff;
+  color: #5e3b4a;
+}
+
 .empty-state {
   margin: 0;
   color: #7e6070;
@@ -330,6 +365,18 @@
   list-style: none;
   display: grid;
   gap: 12px;
+}
+
+.admin-pin-form {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0d6d4;
+}
+
+.admin-pin-form h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #5d3346;
 }
 
 .admin-service-list li {

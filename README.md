@@ -71,6 +71,7 @@ create table if not exists public.appointments (
 	services jsonb not null default '[]'::jsonb,
 	total_price numeric(10,2) not null default 0,
 	total_duration integer not null default 0,
+	status text not null default 'pendente' check (status in ('pendente', 'confirmado', 'cancelado')),
 	created_at timestamptz not null default now()
 );
 
@@ -88,11 +89,12 @@ for insert
 to anon
 with check (true);
 
-create policy "Allow anon delete"
+create policy "Allow anon update"
 on public.appointments
-for delete
+for update
 to anon
-using (true);
+using (true)
+with check (status in ('pendente', 'confirmado', 'cancelado'));
 ```
 
 3. Copie as credenciais do projeto em Project Settings > API.
@@ -132,6 +134,7 @@ public/
 - Esta versao foi pensada para testes e portfolio.
 - Sem Supabase configurado, os dados ficam salvos apenas no navegador do dispositivo.
 - Com Supabase configurado, os agendamentos ficam sincronizados online.
+- A limpeza em lote no painel admin apaga apenas dados locais, evitando remocao acidental de registros online.
 - Para uma versao de producao completa, o proximo passo seria adicionar autenticacao com perfis e regras de acesso mais restritas.
 
 ## Autor
