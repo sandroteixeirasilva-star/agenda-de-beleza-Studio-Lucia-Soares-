@@ -169,10 +169,32 @@ function App() {
     return appointments.filter((appointment) => appointment.date === appointmentFilterDate)
   }, [appointments, appointmentFilterDate])
 
+  const bookedSlotsForDate = useMemo(() => {
+    if (!formData.date) return new Set()
+    return new Set(
+      appointments
+        .filter(
+          (a) => a.date === formData.date && a.status !== APPOINTMENT_STATUS.CANCELED
+        )
+        .map((a) => a.time)
+    )
+  }, [appointments, formData.date])
+
+  const availableSlotsForDate = useMemo(
+    () => availableSlots.filter((slot) => !bookedSlotsForDate.has(slot)),
+    [bookedSlotsForDate]
+  )
+
   useEffect(() => {
     const validIds = new Set(services.map((service) => service.id))
     setSelectedServices((current) => current.filter((id) => validIds.has(id)))
   }, [services])
+
+  useEffect(() => {
+    if (formData.time && bookedSlotsForDate.has(formData.time)) {
+      setFormData((current) => ({ ...current, time: '' }))
+    }
+  }, [bookedSlotsForDate, formData.time])
 
   useEffect(() => {
     localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(services))
@@ -495,6 +517,18 @@ function App() {
       return
     }
 
+    const alreadyBooked = appointments.some(
+      (a) =>
+        a.date === formData.date &&
+        a.time === formData.time &&
+        a.status !== APPOINTMENT_STATUS.CANCELED
+    )
+
+    if (alreadyBooked) {
+      setFeedback('Este horario ja foi reservado. Por favor, escolha outro horario.')
+      return
+    }
+
     setIsSubmitting(true)
 
     const appointment = {
@@ -653,14 +687,24 @@ function App() {
 
                 <label>
                   Horario
-                  <select name="time" value={formData.time} onChange={handleInputChange}>
-                    <option value="">Selecione</option>
-                    {availableSlots.map((slot) => (
+                  <select
+                    name="time"
+                    value={formData.time}
+                    onChange={handleInputChange}
+                    disabled={isSyncLoading}
+                  >
+                    <option value="">
+                      {isSyncLoading ? 'Carregando...' : availableSlotsForDate.length === 0 ? 'Sem horarios disponíveis' : 'Selecione'}
+                    </option>
+                    {availableSlotsForDate.map((slot) => (
                       <option key={slot} value={slot}>
                         {slot}
                       </option>
                     ))}
                   </select>
+                  {!isSyncLoading && availableSlotsForDate.length === 0 && (
+                    <span className="slots-esgotados">Todos os horarios desta data estao ocupados.</span>
+                  )}
                 </label>
               </div>
 

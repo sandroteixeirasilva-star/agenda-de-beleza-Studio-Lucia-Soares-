@@ -225,6 +225,14 @@
   cursor: not-allowed;
 }
 
+.slots-esgotados {
+  display: block;
+  margin-top: 4px;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
 .feedback {
   margin: 0;
   color: #7f2950;
